@@ -1,0 +1,29 @@
+{
+  "name": "playground",
+  "description": "Web app boilerplate",
+  "version": "0.0.1",
+  "homepage": "https://github.com/tuoxiansp/playground",
+  "author": {
+    "name": "tuoxiansp",
+    "url": "github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tuoxiansp/playground.git"
+  },
+  "engines": {
+    "node": ">= 4.0"
+  },
+  "devDependencies": {
+    "puer": "^1.1.1",
+    "webpack": "^1.12.1",
+    "style-loader": "^0.12.3",
+    "css-loader": "^0.18.0",
+    "url-loader": "^0.5.6",
+    "html-webpack-plugin": "^1.7.0",
+    "gulp": "^3.9.0",
+    "gulp-webpack": "^1.5.0",
+    "run-sequence": "^1.1.2",
+    "vinyl-named": "^1.1.0"
+  }
+}
