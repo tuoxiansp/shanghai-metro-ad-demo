@@ -1,0 +1,6 @@
+{
+    "name": "playground",
+    "dependencies": {
+        "jasmine": "^2.4"
+    }
+}
