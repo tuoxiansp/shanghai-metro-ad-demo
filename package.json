@@ -20,10 +20,14 @@
     "style-loader": "^0.12.3",
     "css-loader": "^0.18.0",
     "url-loader": "^0.5.6",
+    "expose-loader": "^0.7.1",
     "html-webpack-plugin": "^1.7.0",
     "gulp": "^3.9.0",
     "gulp-webpack": "^1.5.0",
     "run-sequence": "^1.1.2",
+    "yargs": "^3.25.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-template": "^3.0.0",
     "vinyl-named": "^1.1.0"
   }
 }

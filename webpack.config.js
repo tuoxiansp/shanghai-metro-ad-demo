@@ -10,7 +10,10 @@ module.exports = {
         root: [path.join(__dirname, 'app/lib'), path.join(__dirname, 'app/src')],
         extensions: ['', '.js'],
         alias: {
-            jasmine: __dirname + '/app/lib/jasmine/lib/jasmine-core/'
+            jasmine: __dirname + '/app/lib/jasmine/lib/jasmine-core/',
+            famous: __dirname + '/app/lib/famous/src',
+            'famous-flex': __dirname + '/app/lib/famous-flex/src',
+            'dat-gui': __dirname + '/app/lib/dat.gui.js/build/dat.gui.js'
         }
     },
     module: {

@@ -1,0 +1,65 @@
+{
+  "main": [
+    "dist/famous-flex-global.js"
+  ],
+  "name": "famous-flex",
+  "version": "0.3.6",
+  "homepage": "https://github.com/IjzerenHein/famous-flex",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IjzerenHein/famous-flex.git"
+  },
+  "authors": [
+    "Hein Rutjes <hrutjes@gmail.com>"
+  ],
+  "description": "Animatable layouts, FlexScrollView & widgets for famo.us",
+  "keywords": [
+    "famo.us",
+    "famous",
+    "flex",
+    "famous-flex",
+    "famousflex",
+    "layoutcontroller",
+    "scrollcontroller",
+    "animationcontroller",
+    "scrollview",
+    "flexscrollview",
+    "flex-scrollview",
+    "datewheel",
+    "datepicker",
+    "datetimepicker",
+    "tabbar",
+    "tabbarcontroller",
+    "coverlayout",
+    "widgets",
+    "autolayout",
+    "cassowary",
+    "visualformat",
+    "vfl"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "tests",
+    "examples",
+    "docs",
+    "tutorials",
+    "Gruntfile.js",
+    "screenshot.gif",
+    "CONTRIBUTORS.md",
+    "CONTRIBUTING.md",
+    "template-global.js",
+    "template.js"
+  ],
+  "_release": "0.3.6",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.3.6",
+    "commit": "49d8acb3428711bc02935431616fde3aac3f33b3"
+  },
+  "_source": "git://github.com/IjzerenHein/famous-flex.git",
+  "_target": "^0.3.6",
+  "_originalSource": "famous-flex"
+}

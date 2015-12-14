@@ -1,2 +1,11 @@
-document.write('<h1>Hello!</h1>');
-document.write('<h3>Playground is ready!</h3>');
+//pollfill
+require('famousArchives-polyfills/functionPrototypeBind');
+require('famousArchives-polyfills/classList');
+require('famousArchives-polyfills/requestAnimationFrame');
+
+//依赖的css
+require('famous/core/famous.css');
+require('content/app.css');
+
+//启动程序
+require('app').start();
