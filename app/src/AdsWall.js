@@ -36,14 +36,14 @@ define(function(require, exports, module) {
     };
 
     function AdsMovingVars() {
-        this.speed = 100;
-        this.spacing = 0;
-        this.isMoving = false;
-        this.blink = false;
-        this.deviation = 0;
-        this.lockSpacing = true;
-        this.fps = 30;
-        this.autoBlink = false;
+        this.speed = 100;           //毫秒速度
+        this.spacing = 0;           //每两幅图之间的间距
+        this.isMoving = false;      //是否运行
+        this.blink = false;         //画面与屏幕对齐才显示
+        this.deviation = 0;         //画面与屏幕对其的可接受误差
+        this.autoSpacing = true;    //自动计算间距
+        this.fps = 30;              //要求达到的帧数
+        this.autoBlink = false;     //画面自闪烁
     }
 
     /**
@@ -90,7 +90,6 @@ define(function(require, exports, module) {
         var layout = new FlexScrollView({
             dataSource: viewSequence,
             mouseMove: true,
-            // autoPipeEvents: true,
             useContainer: true,
             direction: Utility.Direction.X
         });
@@ -102,7 +101,7 @@ define(function(require, exports, module) {
 
         Engine.on('prerender', function() {
             var movingVars = this.movingVars;
-            if(movingVars.lockSpacing) {
+            if(movingVars.autoSpacing) {
                 var tempSpacing = calcSpacing(movingVars.fps, movingVars.speed, window.innerWidth);
                 if(tempSpacing < 0) {
                     console.log('速度不足');
