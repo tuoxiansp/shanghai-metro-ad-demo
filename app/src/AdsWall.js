@@ -6,6 +6,7 @@ define(function(require, exports, module) {
     var StateModifier = require('famous/modifiers/StateModifier');
     var ImageSurface = require('famous/surfaces/ImageSurface');
     var Utility = require('famous/utilities/Utility');
+    var Fader = require('famous/modifiers/Fader');
 
     var VirtualViewSequence = require('famous-flex/VirtualViewSequence');
     var FlexScrollView = require('famous-flex/FlexScrollView');
@@ -37,6 +38,20 @@ define(function(require, exports, module) {
         this.speed = 100;
         this.spacing = 0;
         this.isMoving = false;
+        this.blink = false;
+        this.deviation = 0;
+    }
+
+    /**
+     * 检测画面是否正对列车
+     * @param  {[type]} offset    [description]
+     * @param  {[type]} interval  [description]
+     * @param  {[type]} deviation [description]
+     * @return {[type]}           [description]
+     */
+    function checkIsOffsetOk(offset, interval, deviation) {
+        var mod = offset % interval;
+        return mod <= deviation;
     }
 
     /*
@@ -53,6 +68,13 @@ define(function(require, exports, module) {
             factory: new AdsFactory()
         });
 
+        var fader = new Fader({
+            transition: false
+        });
+        this.fader = fader;
+
+        fader.show();
+
         var layout = new FlexScrollView({
             dataSource: viewSequence,
             mouseMove: true,
@@ -62,7 +84,7 @@ define(function(require, exports, module) {
         });
         this.layout = layout;
 
-        this.add(layout);
+        this.add(fader).add(layout);
 
         this.movingVars = new AdsMovingVars();
 
@@ -77,6 +99,21 @@ define(function(require, exports, module) {
                 var deltaTime = Engine.frameTime;
                 var deltaDistance = deltaTime * movingVars.speed;
                 this.layout.scroll(deltaDistance);
+            }
+            if(movingVars.blink) {
+                if(checkIsOffsetOk(this.layout.getOffset(), movingVars.spacing+window.innerWidth, movingVars.deviation)) {
+                    this.fader.show();
+                }
+                else {
+                    if(this.fader.isVisible()) {
+                        this.fader.hide();
+                    }
+                }
+            }
+            else {
+                if(!this.fader.isVisible()) {
+                    this.fader.show();
+                }
             }
         }.bind(this));
     }

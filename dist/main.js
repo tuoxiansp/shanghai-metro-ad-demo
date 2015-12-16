@@ -626,7 +626,7 @@
 	
 	var Engine = __webpack_require__(12);
 	var AdsWall = __webpack_require__(26);
-	__webpack_require__(60);
+	__webpack_require__(61);
 	
 	console.log(dat);
 	
@@ -640,6 +640,8 @@
 		var gui = new dat.GUI();
 		gui.add(data, 'speed');
 		gui.add(data, 'spacing');
+		gui.add(data, 'blink');
+		gui.add(data, 'deviation');
 		gui.add(data, 'isMoving');
 	};
 	
@@ -3947,17 +3949,18 @@
 	    var StateModifier = __webpack_require__(30);
 	    var ImageSurface = __webpack_require__(33);
 	    var Utility = __webpack_require__(23);
+	    var Fader = __webpack_require__(34);
 	
-	    var VirtualViewSequence = __webpack_require__(34);
-	    var FlexScrollView = __webpack_require__(35);
+	    var VirtualViewSequence = __webpack_require__(35);
+	    var FlexScrollView = __webpack_require__(36);
 	
-	    var _ = __webpack_require__(57);
+	    var _ = __webpack_require__(58);
 	
 	    function AdsFactory() {}
 	
 	    AdsFactory.prototype.create = function(index) {
 	        var imgSurface = new ImageSurface({
-	            content: __webpack_require__(59),
+	            content: __webpack_require__(60),
 	            properties: {
 	                pointerEvents: 'none'
 	            }
@@ -3978,6 +3981,20 @@
 	        this.speed = 100;
 	        this.spacing = 0;
 	        this.isMoving = false;
+	        this.blink = false;
+	        this.deviation = 0;
+	    }
+	
+	    /**
+	     * 检测画面是否正对列车
+	     * @param  {[type]} offset    [description]
+	     * @param  {[type]} interval  [description]
+	     * @param  {[type]} deviation [description]
+	     * @return {[type]}           [description]
+	     */
+	    function checkIsOffsetOk(offset, interval, deviation) {
+	        var mod = offset % interval;
+	        return mod <= deviation;
 	    }
 	
 	    /*
@@ -3994,6 +4011,13 @@
 	            factory: new AdsFactory()
 	        });
 	
+	        var fader = new Fader({
+	            transition: false
+	        });
+	        this.fader = fader;
+	
+	        fader.show();
+	
 	        var layout = new FlexScrollView({
 	            dataSource: viewSequence,
 	            mouseMove: true,
@@ -4003,7 +4027,7 @@
 	        });
 	        this.layout = layout;
 	
-	        this.add(layout);
+	        this.add(fader).add(layout);
 	
 	        this.movingVars = new AdsMovingVars();
 	
@@ -4018,6 +4042,21 @@
 	                var deltaTime = Engine.frameTime;
 	                var deltaDistance = deltaTime * movingVars.speed;
 	                this.layout.scroll(deltaDistance);
+	            }
+	            if(movingVars.blink) {
+	                if(checkIsOffsetOk(this.layout.getOffset(), movingVars.spacing+window.innerWidth, movingVars.deviation)) {
+	                    this.fader.show();
+	                }
+	                else {
+	                    if(this.fader.isVisible()) {
+	                        this.fader.hide();
+	                    }
+	                }
+	            }
+	            else {
+	                if(!this.fader.isVisible()) {
+	                    this.fader.show();
+	                }
 	            }
 	        }.bind(this));
 	    }
@@ -6115,6 +6154,134 @@
 /* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    var Transitionable = __webpack_require__(21);
+	    var OptionsManager = __webpack_require__(25);
+	
+	    /**
+	     * Modifier that allows you to fade the opacity of affected renderables in and out.
+	     * @class Fader
+	     * @constructor
+	     * @param {Object} [options] options configuration object.
+	     * @param {Boolean} [options.cull=false] Stops returning affected renderables up the tree when they're fully faded when true.
+	     * @param {Transition} [options.transition=true] The main transition for showing and hiding.
+	     * @param {Transition} [options.pulseInTransition=true] Controls the transition to a pulsed state when the Fader instance's pulse
+	     * method is called.
+	     * @param {Transition} [options.pulseOutTransition=true]Controls the transition back from a pulsed state when the Fader instance's pulse
+	     * method is called.
+	     *
+	     */
+	    function Fader(options, startState) {
+	        this.options = Object.create(Fader.DEFAULT_OPTIONS);
+	        this._optionsManager = new OptionsManager(this.options);
+	
+	        if (options) this.setOptions(options);
+	
+	        if (!startState) startState = 0;
+	        this.transitionHelper = new Transitionable(startState);
+	    }
+	
+	    Fader.DEFAULT_OPTIONS = {
+	        cull: false,
+	        transition: true,
+	        pulseInTransition: true,
+	        pulseOutTransition: true
+	    };
+	
+	    /**
+	     * Set internal options, overriding any default options
+	     *
+	     * @method setOptions
+	     *
+	     * @param {Object} [options] overrides of default options.  See constructor.
+	     */
+	    Fader.prototype.setOptions = function setOptions(options) {
+	        return this._optionsManager.setOptions(options);
+	    };
+	
+	    /**
+	     * Fully displays the Fader instance's associated renderables.
+	     *
+	     * @method show
+	     * @param {Transition} [transition] The transition that coordinates setting to the new state.
+	     * @param {Function} [callback] A callback that executes once you've transitioned to the fully shown state.
+	     */
+	    Fader.prototype.show = function show(transition, callback) {
+	        transition = transition || this.options.transition;
+	        this.set(1, transition, callback);
+	    };
+	
+	    /**
+	     * Fully fades the Fader instance's associated renderables.
+	     *
+	     * @method hide
+	     * @param {Transition} [transition] The transition that coordinates setting to the new state.
+	     * @param {Function} [callback] A callback that executes once you've transitioned to the fully faded state.
+	     */
+	    Fader.prototype.hide = function hide(transition, callback) {
+	        transition = transition || this.options.transition;
+	        this.set(0, transition, callback);
+	    };
+	
+	    /**
+	     * Manually sets the opacity state of the fader to the passed-in one. Executes with an optional
+	     * transition and callback.
+	     *
+	     * @method set
+	     * @param {Number} state A number from zero to one: the amount of opacity you want to set to.
+	     * @param {Transition} [transition] The transition that coordinates setting to the new state.
+	     * @param {Function} [callback] A callback that executes once you've finished executing the pulse.
+	     */
+	    Fader.prototype.set = function set(state, transition, callback) {
+	        this.halt();
+	        this.transitionHelper.set(state, transition, callback);
+	    };
+	
+	    /**
+	     * Halt the transition
+	     *
+	     * @method halt
+	     */
+	    Fader.prototype.halt = function halt() {
+	        this.transitionHelper.halt();
+	    };
+	
+	    /**
+	     * Tells you if your Fader instance is above its visibility threshold.
+	     *
+	     * @method isVisible
+	     * @return {Boolean} Whether or not your Fader instance is visible.
+	     */
+	    Fader.prototype.isVisible = function isVisible() {
+	        return (this.transitionHelper.get() > 0);
+	    };
+	
+	    /**
+	     * Return render spec for this Modifier, applying to the provided
+	     *    target component.  This is similar to render() for Surfaces.
+	     *
+	     * @private
+	     * @method modify
+	     *
+	     * @param {Object} target (already rendered) render spec to
+	     *    which to apply the transform.
+	     * @return {Object} render spec for this Modifier, including the
+	     *    provided target
+	     */
+	    Fader.prototype.modify = function modify(target) {
+	        var currOpacity = this.transitionHelper.get();
+	        if (this.options.cull && !currOpacity) return undefined;
+	        else return {opacity: currOpacity, target: target};
+	    };
+	
+	    module.exports = Fader;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * This Source Code is licensed under the MIT license. If a copy of the
 	 * MIT-license was not distributed with this file, You can obtain one at:
@@ -6400,7 +6567,7 @@
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -6433,9 +6600,9 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(36);
-	    var ScrollController = __webpack_require__(37);
-	    var ListLayout = __webpack_require__(56);
+	    var LayoutUtility = __webpack_require__(37);
+	    var ScrollController = __webpack_require__(38);
+	    var ListLayout = __webpack_require__(57);
 	
 	    //
 	    // Pull to refresh states
@@ -7013,7 +7180,7 @@
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -7308,7 +7475,7 @@
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -7351,22 +7518,22 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(36);
-	    var LayoutController = __webpack_require__(38);
-	    var LayoutNode = __webpack_require__(43);
-	    var FlowLayoutNode = __webpack_require__(44);
-	    var LayoutNodeManager = __webpack_require__(41);
-	    var ContainerSurface = __webpack_require__(52);
+	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutController = __webpack_require__(39);
+	    var LayoutNode = __webpack_require__(44);
+	    var FlowLayoutNode = __webpack_require__(45);
+	    var LayoutNodeManager = __webpack_require__(42);
+	    var ContainerSurface = __webpack_require__(53);
 	    var Transform = __webpack_require__(17);
 	    var EventHandler = __webpack_require__(18);
-	    var Group = __webpack_require__(53);
-	    var Vector = __webpack_require__(45);
-	    var PhysicsEngine = __webpack_require__(50);
-	    var Particle = __webpack_require__(46);
-	    var Drag = __webpack_require__(54);
-	    var Spring = __webpack_require__(48);
-	    var ScrollSync = __webpack_require__(55);
-	    var LinkedListViewSequence = __webpack_require__(40);
+	    var Group = __webpack_require__(54);
+	    var Vector = __webpack_require__(46);
+	    var PhysicsEngine = __webpack_require__(51);
+	    var Particle = __webpack_require__(47);
+	    var Drag = __webpack_require__(55);
+	    var Spring = __webpack_require__(49);
+	    var ScrollSync = __webpack_require__(56);
+	    var LinkedListViewSequence = __webpack_require__(41);
 	
 	    /**
 	     * Boudary reached detection
@@ -9365,7 +9532,7 @@
 
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -9400,16 +9567,16 @@
 	    // import dependencies
 	    var Utility = __webpack_require__(23);
 	    var Entity = __webpack_require__(15);
-	    var ViewSequence = __webpack_require__(39);
-	    var LinkedListViewSequence = __webpack_require__(40);
+	    var ViewSequence = __webpack_require__(40);
+	    var LinkedListViewSequence = __webpack_require__(41);
 	    var OptionsManager = __webpack_require__(25);
 	    var EventHandler = __webpack_require__(18);
-	    var LayoutUtility = __webpack_require__(36);
-	    var LayoutNodeManager = __webpack_require__(41);
-	    var LayoutNode = __webpack_require__(43);
-	    var FlowLayoutNode = __webpack_require__(44);
+	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutNodeManager = __webpack_require__(42);
+	    var LayoutNode = __webpack_require__(44);
+	    var FlowLayoutNode = __webpack_require__(45);
 	    var Transform = __webpack_require__(17);
-	    __webpack_require__(51);
+	    __webpack_require__(52);
 	
 	    /**
 	     * @class
@@ -10418,7 +10585,7 @@
 
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10762,7 +10929,7 @@
 
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -11185,7 +11352,7 @@
 
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -11215,8 +11382,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutContext = __webpack_require__(42);
-	    var LayoutUtility = __webpack_require__(36);
+	    var LayoutContext = __webpack_require__(43);
+	    var LayoutUtility = __webpack_require__(37);
 	    var Surface = __webpack_require__(28);
 	    var RenderNode = __webpack_require__(14);
 	
@@ -11988,7 +12155,7 @@
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12256,7 +12423,7 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12278,7 +12445,7 @@
 	
 	    // import dependencies
 	    var Transform = __webpack_require__(17);
-	    var LayoutUtility = __webpack_require__(36);
+	    var LayoutUtility = __webpack_require__(37);
 	
 	    /**
 	     * @class
@@ -12462,7 +12629,7 @@
 
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12485,11 +12652,11 @@
 	    // import dependencies
 	    var OptionsManager = __webpack_require__(25);
 	    var Transform = __webpack_require__(17);
-	    var Vector = __webpack_require__(45);
-	    var Particle = __webpack_require__(46);
-	    var Spring = __webpack_require__(48);
-	    var PhysicsEngine = __webpack_require__(50);
-	    var LayoutNode = __webpack_require__(43);
+	    var Vector = __webpack_require__(46);
+	    var Particle = __webpack_require__(47);
+	    var Spring = __webpack_require__(49);
+	    var PhysicsEngine = __webpack_require__(51);
+	    var LayoutNode = __webpack_require__(44);
 	    var Transitionable = __webpack_require__(21);
 	
 	    /**
@@ -13027,7 +13194,7 @@
 
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13413,7 +13580,7 @@
 
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13426,10 +13593,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(45);
+	    var Vector = __webpack_require__(46);
 	    var Transform = __webpack_require__(17);
 	    var EventHandler = __webpack_require__(18);
-	    var Integrator = __webpack_require__(47);
+	    var Integrator = __webpack_require__(48);
 	
 	    /**
 	     * A point body that is controlled by the Physics Engine. A particle has
@@ -13806,7 +13973,7 @@
 
 
 /***/ },
-/* 47 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13914,7 +14081,7 @@
 
 
 /***/ },
-/* 48 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13929,8 +14096,8 @@
 	/*global console */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(49);
-	    var Vector = __webpack_require__(45);
+	    var Force = __webpack_require__(50);
+	    var Vector = __webpack_require__(46);
 	
 	    /**
 	     *  A force that moves a physics body to a location with a spring motion.
@@ -14187,7 +14354,7 @@
 
 
 /***/ },
-/* 49 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14200,7 +14367,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(45);
+	    var Vector = __webpack_require__(46);
 	    var EventHandler = __webpack_require__(18);
 	
 	    /**
@@ -14254,7 +14421,7 @@
 
 
 /***/ },
-/* 50 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14787,7 +14954,7 @@
 
 
 /***/ },
-/* 51 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -14838,7 +15005,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(36);
+	    var LayoutUtility = __webpack_require__(37);
 	
 	    /**
 	     * @class
@@ -15069,7 +15236,7 @@
 
 
 /***/ },
-/* 52 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;
@@ -15190,7 +15357,7 @@
 
 
 /***/ },
-/* 53 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15320,7 +15487,7 @@
 
 
 /***/ },
-/* 54 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15333,7 +15500,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(49);
+	    var Force = __webpack_require__(50);
 	
 	    /**
 	     * Drag is a force that opposes velocity. Attach it to the physics engine
@@ -15445,7 +15612,7 @@
 
 
 /***/ },
-/* 55 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15648,7 +15815,7 @@
 
 
 /***/ },
-/* 56 */
+/* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -15720,7 +15887,7 @@
 	
 	    // import dependencies
 	    var Utility = __webpack_require__(23);
-	    var LayoutUtility = __webpack_require__(36);
+	    var LayoutUtility = __webpack_require__(37);
 	
 	    // Define capabilities of this layout function
 	    var capabilities = {
@@ -15964,7 +16131,7 @@
 
 
 /***/ },
-/* 57 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -28320,10 +28487,10 @@
 	  }
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(58)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(59)(module), (function() { return this; }())))
 
 /***/ },
-/* 58 */
+/* 59 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -28339,21 +28506,21 @@
 
 
 /***/ },
-/* 59 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__.p + "723e31f389b6dd77d68545b69583256f.jpg";
 
 /***/ },
-/* 60 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {if(!global["dat"]) global["dat"] = {};
-	module.exports = global["dat"]["gui"] = __webpack_require__(61);
+	module.exports = global["dat"]["gui"] = __webpack_require__(62);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 61 */
+/* 62 */
 /***/ function(module, exports) {
 
 	/**
