@@ -7,6 +7,7 @@ define(function(require, exports, module) {
     var ImageSurface = require('famous/surfaces/ImageSurface');
     var Utility = require('famous/utilities/Utility');
     var Fader = require('famous/modifiers/Fader');
+    var Timer = require('famous/utilities/Timer');
 
     var VirtualViewSequence = require('famous-flex/VirtualViewSequence');
     var FlexScrollView = require('famous-flex/FlexScrollView');
@@ -40,6 +41,9 @@ define(function(require, exports, module) {
         this.isMoving = false;
         this.blink = false;
         this.deviation = 0;
+        this.lockSpacing = true;
+        this.fps = 30;
+        this.autoBlink = false;
     }
 
     /**
@@ -52,6 +56,14 @@ define(function(require, exports, module) {
     function checkIsOffsetOk(offset, interval, deviation) {
         var mod = offset % interval;
         return mod <= deviation;
+    }
+
+    /**
+     * 计算两张图之间的间隔，这个公式说明没有足够的速度是无法实现稳定的led广告的
+     * 1/fps * speed = width + spacing
+     */
+    function calcSpacing(fps, speed, width) {
+        return 1/fps * 1000 * speed - width;
     }
 
     /*
@@ -90,6 +102,15 @@ define(function(require, exports, module) {
 
         Engine.on('prerender', function() {
             var movingVars = this.movingVars;
+            if(movingVars.lockSpacing) {
+                var tempSpacing = calcSpacing(movingVars.fps, movingVars.speed, window.innerWidth);
+                if(tempSpacing < 0) {
+                    console.log('速度不足');
+                }
+                else {
+                    movingVars.spacing = tempSpacing;
+                }
+            }
             this.layout.setOptions({
                 layoutOptions: {
                     spacing: movingVars.spacing
@@ -116,6 +137,12 @@ define(function(require, exports, module) {
                 }
             }
         }.bind(this));
+
+        Engine.on('postrender', function() {
+            if(this.autoBlinkTimer) {
+                this.fader.hide();
+            }
+        }.bind(this));
     }
 
     AdsWall.prototype = Object.create(View.prototype);
@@ -123,6 +150,20 @@ define(function(require, exports, module) {
 
     AdsWall.prototype.getMovingVars = function() {
         return this.movingVars;
+    };
+
+    AdsWall.prototype.autoBlink = function() {
+        var shouldAutoBlink = this.movingVars.autoBlink;
+        if(shouldAutoBlink) {
+            this.autoBlinkTimer = Timer.setInterval(function() {
+                if(!this.fader.isVisible()) {
+                    this.fader.show();
+                }
+            }.bind(this), 1/this.movingVars.fps);
+        }
+        else {
+            Timer.clear(this.autoBlinkTimer);
+        }
     };
 
     AdsWall.DEFAULT_OPTIONS = {

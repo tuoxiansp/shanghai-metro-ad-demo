@@ -290,7 +290,7 @@
 	
 	
 	// module
-	exports.push([module.id, "/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2015\n */\n\n.famous-root {\n    width: 100%;\n    height: 100%;\n    margin: 0px;\n    padding: 0px;\n    opacity: .999999; /* ios8 hotfix */\n    overflow: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n}\n\n.famous-container, .famous-group {\n    position: absolute;\n    top: 0px;\n    left: 0px;\n    bottom: 0px;\n    right: 0px;\n    overflow: visible;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-backface-visibility: visible;\n    backface-visibility: visible;\n    pointer-events: none;\n}\n\n.famous-group {\n    width: 0px;\n    height: 0px;\n    margin: 0px;\n    padding: 0px;\n}\n\n.famous-surface {\n    position: absolute;\n    -webkit-transform-origin: center center;\n    transform-origin: center center;\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-box-sizing: border-box;\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    -webkit-tap-highlight-color: transparent;\n    pointer-events: auto;\n}\n\n.famous-container-group {\n    position: relative;\n    width: 100%;\n    height: 100%;\n}\n", ""]);
+	exports.push([module.id, "/* This Source Code Form is subject to the terms of the Mozilla Public\r\n * License, v. 2.0. If a copy of the MPL was not distributed with this\r\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\r\n *\r\n * Owner: mark@famo.us\r\n * @license MPL 2.0\r\n * @copyright Famous Industries, Inc. 2015\r\n */\r\n\r\n.famous-root {\r\n    width: 100%;\r\n    height: 100%;\r\n    margin: 0px;\r\n    padding: 0px;\r\n    opacity: .999999; /* ios8 hotfix */\r\n    overflow: hidden;\r\n    -webkit-transform-style: preserve-3d;\r\n    transform-style: preserve-3d;\r\n}\r\n\r\n.famous-container, .famous-group {\r\n    position: absolute;\r\n    top: 0px;\r\n    left: 0px;\r\n    bottom: 0px;\r\n    right: 0px;\r\n    overflow: visible;\r\n    -webkit-transform-style: preserve-3d;\r\n    transform-style: preserve-3d;\r\n    -webkit-backface-visibility: visible;\r\n    backface-visibility: visible;\r\n    pointer-events: none;\r\n}\r\n\r\n.famous-group {\r\n    width: 0px;\r\n    height: 0px;\r\n    margin: 0px;\r\n    padding: 0px;\r\n}\r\n\r\n.famous-surface {\r\n    position: absolute;\r\n    -webkit-transform-origin: center center;\r\n    transform-origin: center center;\r\n    -webkit-backface-visibility: hidden;\r\n    backface-visibility: hidden;\r\n    -webkit-transform-style: preserve-3d;\r\n    transform-style: preserve-3d;\r\n    -webkit-box-sizing: border-box;\r\n    -moz-box-sizing: border-box;\r\n    box-sizing: border-box;\r\n    -webkit-tap-highlight-color: transparent;\r\n    pointer-events: auto;\r\n}\r\n\r\n.famous-container-group {\r\n    position: relative;\r\n    width: 100%;\r\n    height: 100%;\r\n}\r\n", ""]);
 	
 	// exports
 
@@ -611,7 +611,7 @@
 	
 	
 	// module
-	exports.push([module.id, "body {\n\tbackground: #000000\n}", ""]);
+	exports.push([module.id, "body {\r\n\tbackground: #000000\r\n}", ""]);
 	
 	// exports
 
@@ -626,7 +626,7 @@
 	
 	var Engine = __webpack_require__(12);
 	var AdsWall = __webpack_require__(26);
-	__webpack_require__(61);
+	__webpack_require__(62);
 	
 	console.log(dat);
 	
@@ -639,9 +639,14 @@
 		var data = adsWall.getMovingVars();
 		var gui = new dat.GUI();
 		gui.add(data, 'speed');
-		gui.add(data, 'spacing');
+		gui.add(data, 'spacing').listen();
 		gui.add(data, 'blink');
 		gui.add(data, 'deviation');
+		gui.add(data, 'lockSpacing');
+		gui.add(data, 'fps');
+		gui.add(data, 'autoBlink').onFinishChange(function() {
+			adsWall.autoBlink();
+		});
 		gui.add(data, 'isMoving');
 	};
 	
@@ -3950,17 +3955,18 @@
 	    var ImageSurface = __webpack_require__(33);
 	    var Utility = __webpack_require__(23);
 	    var Fader = __webpack_require__(34);
+	    var Timer = __webpack_require__(35);
 	
-	    var VirtualViewSequence = __webpack_require__(35);
-	    var FlexScrollView = __webpack_require__(36);
+	    var VirtualViewSequence = __webpack_require__(36);
+	    var FlexScrollView = __webpack_require__(37);
 	
-	    var _ = __webpack_require__(58);
+	    var _ = __webpack_require__(59);
 	
 	    function AdsFactory() {}
 	
 	    AdsFactory.prototype.create = function(index) {
 	        var imgSurface = new ImageSurface({
-	            content: __webpack_require__(60),
+	            content: __webpack_require__(61),
 	            properties: {
 	                pointerEvents: 'none'
 	            }
@@ -3983,6 +3989,9 @@
 	        this.isMoving = false;
 	        this.blink = false;
 	        this.deviation = 0;
+	        this.lockSpacing = true;
+	        this.fps = 30;
+	        this.autoBlink = false;
 	    }
 	
 	    /**
@@ -3995,6 +4004,14 @@
 	    function checkIsOffsetOk(offset, interval, deviation) {
 	        var mod = offset % interval;
 	        return mod <= deviation;
+	    }
+	
+	    /**
+	     * 计算两张图之间的间隔，这个公式说明没有足够的速度是无法实现稳定的led广告的
+	     * 1/fps * speed = width + spacing
+	     */
+	    function calcSpacing(fps, speed, width) {
+	        return 1/fps * 1000 * speed - width;
 	    }
 	
 	    /*
@@ -4033,6 +4050,15 @@
 	
 	        Engine.on('prerender', function() {
 	            var movingVars = this.movingVars;
+	            if(movingVars.lockSpacing) {
+	                var tempSpacing = calcSpacing(movingVars.fps, movingVars.speed, window.innerWidth);
+	                if(tempSpacing < 0) {
+	                    console.log('速度不足');
+	                }
+	                else {
+	                    movingVars.spacing = tempSpacing;
+	                }
+	            }
 	            this.layout.setOptions({
 	                layoutOptions: {
 	                    spacing: movingVars.spacing
@@ -4059,6 +4085,12 @@
 	                }
 	            }
 	        }.bind(this));
+	
+	        Engine.on('postrender', function() {
+	            if(this.autoBlinkTimer) {
+	                this.fader.hide();
+	            }
+	        }.bind(this));
 	    }
 	
 	    AdsWall.prototype = Object.create(View.prototype);
@@ -4066,6 +4098,20 @@
 	
 	    AdsWall.prototype.getMovingVars = function() {
 	        return this.movingVars;
+	    };
+	
+	    AdsWall.prototype.autoBlink = function() {
+	        var shouldAutoBlink = this.movingVars.autoBlink;
+	        if(shouldAutoBlink) {
+	            this.autoBlinkTimer = Timer.setInterval(function() {
+	                if(!this.fader.isVisible()) {
+	                    this.fader.show();
+	                }
+	            }.bind(this), 1/this.movingVars.fps);
+	        }
+	        else {
+	            Timer.clear(this.autoBlinkTimer);
+	        }
 	    };
 	
 	    AdsWall.DEFAULT_OPTIONS = {
@@ -6282,6 +6328,215 @@
 /* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * Owner: mark@famo.us
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	// TODO fix func-style
+	/*eslint func-style: [0, "declaration"] */
+	
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	    /**
+	     * An internal library to reproduce javascript time-based scheduling.
+	     *   Using standard javascript setTimeout methods can have a negative performance impact
+	     *   when combined with the Famous rendering process, so instead require Timer and call
+	     *   Timer.setTimeout, Timer.setInterval, etc.
+	     *
+	     * @class Timer
+	     * @constructor
+	     */
+	    var FamousEngine = __webpack_require__(12);
+	
+	    var _event  = 'prerender';
+	
+	    var getTime = (window.performance && window.performance.now) ?
+	        function() {
+	            return window.performance.now();
+	        }
+	        : function() {
+	            return Date.now();
+	        };
+	
+	    /**
+	     * Add a function to be run on every prerender
+	     *
+	     * @method addTimerFunction
+	     *
+	     * @param {function} fn function to be run every prerender
+	     *
+	     * @return {function} function passed in as parameter
+	     */
+	    function addTimerFunction(fn) {
+	        FamousEngine.on(_event, fn);
+	        return fn;
+	    }
+	
+	    /**
+	     * Wraps a function to be invoked after a certain amount of time.
+	     *  After a set duration has passed, it executes the function and
+	     *  removes it as a listener to 'prerender'.
+	     *
+	     * @method setTimeout
+	     *
+	     * @param {function} fn function to be run after a specified duration
+	     * @param {number} duration milliseconds from now to execute the function
+	     *
+	     * @return {function} function passed in as parameter
+	     */
+	    function setTimeout(fn, duration) {
+	        var t = getTime();
+	        var callback = function() {
+	            var t2 = getTime();
+	            if (t2 - t >= duration) {
+	                fn.apply(this, arguments);
+	                FamousEngine.removeListener(_event, callback);
+	            }
+	        };
+	        return addTimerFunction(callback);
+	    }
+	
+	    /**
+	     * Wraps a function to be invoked after a certain amount of time.
+	     *  After a set duration has passed, it executes the function and
+	     *  resets the execution time.
+	     *
+	     * @method setInterval
+	     *
+	     * @param {function} fn function to be run after a specified duration
+	     * @param {number} duration interval to execute function in milliseconds
+	     *
+	     * @return {function} function passed in as parameter
+	     */
+	    function setInterval(fn, duration) {
+	        var t = getTime();
+	        var callback = function() {
+	            var t2 = getTime();
+	            if (t2 - t >= duration) {
+	                fn.apply(this, arguments);
+	                t = getTime();
+	            }
+	        };
+	        return addTimerFunction(callback);
+	    }
+	
+	    /**
+	     * Wraps a function to be invoked after a certain amount of prerender ticks.
+	     *  Similar use to setTimeout but tied to the engine's run speed.
+	     *
+	     * @method after
+	     *
+	     * @param {function} fn function to be run after a specified amount of ticks
+	     * @param {number} numTicks number of prerender frames to wait
+	     *
+	     * @return {function} function passed in as parameter
+	     */
+	    function after(fn, numTicks) {
+	        if (numTicks === undefined) return undefined;
+	        var callback = function() {
+	            numTicks--;
+	            if (numTicks <= 0) { //in case numTicks is fraction or negative
+	                fn.apply(this, arguments);
+	                clear(callback);
+	            }
+	        };
+	        return addTimerFunction(callback);
+	    }
+	
+	    /**
+	     * Wraps a function to be continually invoked after a certain amount of prerender ticks.
+	     *  Similar use to setInterval but tied to the engine's run speed.
+	     *
+	     * @method every
+	     *
+	     * @param {function} fn function to be run after a specified amount of ticks
+	     * @param {number} numTicks number of prerender frames to wait
+	     *
+	     * @return {function} function passed in as parameter
+	     */
+	    function every(fn, numTicks) {
+	        numTicks = numTicks || 1;
+	        var initial = numTicks;
+	        var callback = function() {
+	            numTicks--;
+	            if (numTicks <= 0) { //in case numTicks is fraction or negative
+	                fn.apply(this, arguments);
+	                numTicks = initial;
+	            }
+	        };
+	        return addTimerFunction(callback);
+	    }
+	
+	    /**
+	     * Remove a function that gets called every prerender
+	     *
+	     * @method clear
+	     *
+	     * @param {function} fn event linstener
+	     */
+	    function clear(fn) {
+	        FamousEngine.removeListener(_event, fn);
+	    }
+	
+	    /**
+	     * Executes a function after a certain amount of time. Makes sure
+	     *  the function is not run multiple times.
+	     *
+	     * @method debounce
+	     *
+	     * @param {function} func function to run after certain amount of time
+	     * @param {number} wait amount of time
+	     *
+	     * @return {function} function that is not able to debounce
+	     */
+	    function debounce(func, wait) {
+	        var timeout;
+	        var ctx;
+	        var timestamp;
+	        var result;
+	        var args;
+	        return function() {
+	            ctx = this;
+	            args = arguments;
+	            timestamp = getTime();
+	
+	            var fn = function() {
+	                var last = getTime - timestamp;
+	
+	                if (last < wait) {
+	                    timeout = setTimeout(fn, wait - last);
+	                } else {
+	                    timeout = null;
+	                    result = func.apply(ctx, args);
+	                }
+	            };
+	
+	            clear(timeout);
+	            timeout = setTimeout(fn, wait);
+	
+	            return result;
+	        };
+	    }
+	
+	    module.exports = {
+	        setTimeout : setTimeout,
+	        setInterval : setInterval,
+	        debounce : debounce,
+	        after : after,
+	        every : every,
+	        clear : clear
+	    };
+	
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 36 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * This Source Code is licensed under the MIT license. If a copy of the
 	 * MIT-license was not distributed with this file, You can obtain one at:
@@ -6567,7 +6822,7 @@
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -6600,9 +6855,9 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(37);
-	    var ScrollController = __webpack_require__(38);
-	    var ListLayout = __webpack_require__(57);
+	    var LayoutUtility = __webpack_require__(38);
+	    var ScrollController = __webpack_require__(39);
+	    var ListLayout = __webpack_require__(58);
 	
 	    //
 	    // Pull to refresh states
@@ -7180,7 +7435,7 @@
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -7475,7 +7730,7 @@
 
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -7518,22 +7773,22 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(37);
-	    var LayoutController = __webpack_require__(39);
-	    var LayoutNode = __webpack_require__(44);
-	    var FlowLayoutNode = __webpack_require__(45);
-	    var LayoutNodeManager = __webpack_require__(42);
-	    var ContainerSurface = __webpack_require__(53);
+	    var LayoutUtility = __webpack_require__(38);
+	    var LayoutController = __webpack_require__(40);
+	    var LayoutNode = __webpack_require__(45);
+	    var FlowLayoutNode = __webpack_require__(46);
+	    var LayoutNodeManager = __webpack_require__(43);
+	    var ContainerSurface = __webpack_require__(54);
 	    var Transform = __webpack_require__(17);
 	    var EventHandler = __webpack_require__(18);
-	    var Group = __webpack_require__(54);
-	    var Vector = __webpack_require__(46);
-	    var PhysicsEngine = __webpack_require__(51);
-	    var Particle = __webpack_require__(47);
-	    var Drag = __webpack_require__(55);
-	    var Spring = __webpack_require__(49);
-	    var ScrollSync = __webpack_require__(56);
-	    var LinkedListViewSequence = __webpack_require__(41);
+	    var Group = __webpack_require__(55);
+	    var Vector = __webpack_require__(47);
+	    var PhysicsEngine = __webpack_require__(52);
+	    var Particle = __webpack_require__(48);
+	    var Drag = __webpack_require__(56);
+	    var Spring = __webpack_require__(50);
+	    var ScrollSync = __webpack_require__(57);
+	    var LinkedListViewSequence = __webpack_require__(42);
 	
 	    /**
 	     * Boudary reached detection
@@ -9532,7 +9787,7 @@
 
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -9567,16 +9822,16 @@
 	    // import dependencies
 	    var Utility = __webpack_require__(23);
 	    var Entity = __webpack_require__(15);
-	    var ViewSequence = __webpack_require__(40);
-	    var LinkedListViewSequence = __webpack_require__(41);
+	    var ViewSequence = __webpack_require__(41);
+	    var LinkedListViewSequence = __webpack_require__(42);
 	    var OptionsManager = __webpack_require__(25);
 	    var EventHandler = __webpack_require__(18);
-	    var LayoutUtility = __webpack_require__(37);
-	    var LayoutNodeManager = __webpack_require__(42);
-	    var LayoutNode = __webpack_require__(44);
-	    var FlowLayoutNode = __webpack_require__(45);
+	    var LayoutUtility = __webpack_require__(38);
+	    var LayoutNodeManager = __webpack_require__(43);
+	    var LayoutNode = __webpack_require__(45);
+	    var FlowLayoutNode = __webpack_require__(46);
 	    var Transform = __webpack_require__(17);
-	    __webpack_require__(52);
+	    __webpack_require__(53);
 	
 	    /**
 	     * @class
@@ -10585,7 +10840,7 @@
 
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10929,7 +11184,7 @@
 
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -11352,7 +11607,7 @@
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -11382,8 +11637,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutContext = __webpack_require__(43);
-	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutContext = __webpack_require__(44);
+	    var LayoutUtility = __webpack_require__(38);
 	    var Surface = __webpack_require__(28);
 	    var RenderNode = __webpack_require__(14);
 	
@@ -12155,7 +12410,7 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12423,7 +12678,7 @@
 
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12445,7 +12700,7 @@
 	
 	    // import dependencies
 	    var Transform = __webpack_require__(17);
-	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutUtility = __webpack_require__(38);
 	
 	    /**
 	     * @class
@@ -12629,7 +12884,7 @@
 
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12652,11 +12907,11 @@
 	    // import dependencies
 	    var OptionsManager = __webpack_require__(25);
 	    var Transform = __webpack_require__(17);
-	    var Vector = __webpack_require__(46);
-	    var Particle = __webpack_require__(47);
-	    var Spring = __webpack_require__(49);
-	    var PhysicsEngine = __webpack_require__(51);
-	    var LayoutNode = __webpack_require__(44);
+	    var Vector = __webpack_require__(47);
+	    var Particle = __webpack_require__(48);
+	    var Spring = __webpack_require__(50);
+	    var PhysicsEngine = __webpack_require__(52);
+	    var LayoutNode = __webpack_require__(45);
 	    var Transitionable = __webpack_require__(21);
 	
 	    /**
@@ -13194,7 +13449,7 @@
 
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13580,7 +13835,7 @@
 
 
 /***/ },
-/* 47 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -13593,10 +13848,10 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(46);
+	    var Vector = __webpack_require__(47);
 	    var Transform = __webpack_require__(17);
 	    var EventHandler = __webpack_require__(18);
-	    var Integrator = __webpack_require__(48);
+	    var Integrator = __webpack_require__(49);
 	
 	    /**
 	     * A point body that is controlled by the Physics Engine. A particle has
@@ -13973,7 +14228,7 @@
 
 
 /***/ },
-/* 48 */
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14081,7 +14336,7 @@
 
 
 /***/ },
-/* 49 */
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14096,8 +14351,8 @@
 	/*global console */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(50);
-	    var Vector = __webpack_require__(46);
+	    var Force = __webpack_require__(51);
+	    var Vector = __webpack_require__(47);
 	
 	    /**
 	     *  A force that moves a physics body to a location with a spring motion.
@@ -14354,7 +14609,7 @@
 
 
 /***/ },
-/* 50 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14367,7 +14622,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Vector = __webpack_require__(46);
+	    var Vector = __webpack_require__(47);
 	    var EventHandler = __webpack_require__(18);
 	
 	    /**
@@ -14421,7 +14676,7 @@
 
 
 /***/ },
-/* 51 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -14954,7 +15209,7 @@
 
 
 /***/ },
-/* 52 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -15005,7 +15260,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutUtility = __webpack_require__(38);
 	
 	    /**
 	     * @class
@@ -15236,7 +15491,7 @@
 
 
 /***/ },
-/* 53 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;
@@ -15357,7 +15612,7 @@
 
 
 /***/ },
-/* 54 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15487,7 +15742,7 @@
 
 
 /***/ },
-/* 55 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15500,7 +15755,7 @@
 	 */
 	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
-	    var Force = __webpack_require__(50);
+	    var Force = __webpack_require__(51);
 	
 	    /**
 	     * Drag is a force that opposes velocity. Attach it to the physics engine
@@ -15612,7 +15867,7 @@
 
 
 /***/ },
-/* 56 */
+/* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15815,7 +16070,7 @@
 
 
 /***/ },
-/* 57 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -15887,7 +16142,7 @@
 	
 	    // import dependencies
 	    var Utility = __webpack_require__(23);
-	    var LayoutUtility = __webpack_require__(37);
+	    var LayoutUtility = __webpack_require__(38);
 	
 	    // Define capabilities of this layout function
 	    var capabilities = {
@@ -16131,7 +16386,7 @@
 
 
 /***/ },
-/* 58 */
+/* 59 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -28487,10 +28742,10 @@
 	  }
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(59)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(60)(module), (function() { return this; }())))
 
 /***/ },
-/* 59 */
+/* 60 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -28506,21 +28761,21 @@
 
 
 /***/ },
-/* 60 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__.p + "723e31f389b6dd77d68545b69583256f.jpg";
 
 /***/ },
-/* 61 */
+/* 62 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {if(!global["dat"]) global["dat"] = {};
-	module.exports = global["dat"]["gui"] = __webpack_require__(62);
+	module.exports = global["dat"]["gui"] = __webpack_require__(63);
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 62 */
+/* 63 */
 /***/ function(module, exports) {
 
 	/**

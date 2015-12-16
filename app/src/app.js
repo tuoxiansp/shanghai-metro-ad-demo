@@ -17,9 +17,14 @@ function start() {
 	var data = adsWall.getMovingVars();
 	var gui = new dat.GUI();
 	gui.add(data, 'speed');
-	gui.add(data, 'spacing');
+	gui.add(data, 'spacing').listen();
 	gui.add(data, 'blink');
 	gui.add(data, 'deviation');
+	gui.add(data, 'lockSpacing');
+	gui.add(data, 'fps');
+	gui.add(data, 'autoBlink').onFinishChange(function() {
+		adsWall.autoBlink();
+	});
 	gui.add(data, 'isMoving');
 };
 
